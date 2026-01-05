@@ -1,0 +1,721 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Cake, 
+  ChevronRight, 
+  ChevronLeft, 
+  Calendar, 
+  Clock, 
+  MapPin, 
+  CreditCard, 
+  Star, 
+  CheckCircle,
+  Info,
+  DollarSign,
+  Heart,
+  Layout,
+  MessageSquare,
+  Truck,
+  Store,
+  Palette,
+  User,
+  Mail,
+  Phone,
+  ShieldCheck,
+  PackageCheck
+} from 'lucide-react';
+
+// --- Configuration étendue des options ---
+const CAKE_OPTIONS = {
+  shapes: [
+    { id: 'round', label: 'Rond Classique', price: 0, icon: '⚪' },
+    { id: 'square', label: 'Carré Moderne', price: 10, icon: '⬜' },
+    { id: 'heart', label: 'Cœur Romantique', price: 15, icon: '❤️' },
+  ],
+  tiers: [
+    { id: 'mini', label: 'Mini (4-6 parts)', price: 35, icon: '🧁' },
+    { id: '1', label: '1 Étage (10-15 parts)', price: 55, icon: '🎂' },
+    { id: '2', label: '2 Étages (25-30 parts)', price: 95, icon: '🎂🎂' },
+    { id: '3', label: '3 Étages (50+ parts)', price: 160, icon: '🏰' },
+  ],
+  biscuits: [
+    { id: 'vanilla', label: 'Génoise Vanille', price: 0 },
+    { id: 'choco', label: 'Génoise Chocolat', price: 0 },
+    { id: 'lemon', label: 'Citron Zesté', price: 5 },
+    { id: 'almond', label: 'Amande Douce', price: 8 },
+  ],
+  fillings: [
+    { id: 'ganache_choco', label: 'Ganache Chocolat Noir', price: 5 },
+    { id: 'fruit_rouge', label: 'Confit Framboise', price: 10 },
+    { id: 'praline', label: 'Croustillant Praliné', price: 12 },
+    { id: 'passion', label: 'Crème Passion', price: 15 },
+  ],
+  themes: [
+    { id: 'wedding', label: 'Mariage / Chic', price: 30, desc: 'Perles, rubans et élégance' },
+    { id: 'birthday', label: 'Anniversaire Fun', price: 20, desc: 'Confettis et couleurs vives' },
+    { id: 'minimalist', label: 'Nude / Boho', price: 15, desc: 'Épuré et fleurs séchées' },
+    { id: 'kids', label: 'Enfants / Cartoon', price: 40, desc: 'Figurines et décors 3D' },
+  ],
+  decorations: [
+    { id: 'flowers', label: 'Fleurs Fraîches', price: 20 },
+    { id: 'gold', label: 'Feuilles d\'Or 24k', price: 35 },
+    { id: 'macarons', label: 'Duo de Macarons', price: 12 },
+    { id: 'handpainted', label: 'Peinture à la main', price: 45 },
+    { id: 'glitter', label: 'Paillettes Comestibles', price: 8 },
+    { id: 'candles', label: 'Bougies Premium', price: 5 },
+  ]
+};
+
+const App = () => {
+  const [step, setStep] = useState(1);
+  const [budget, setBudget] = useState(250);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  const [selections, setSelections] = useState({
+    shape: CAKE_OPTIONS.shapes[0],
+    tier: CAKE_OPTIONS.tiers[1],
+    biscuit: CAKE_OPTIONS.biscuits[0],
+    filling: CAKE_OPTIONS.fillings[0],
+    theme: CAKE_OPTIONS.themes[1],
+    decorations: [],
+    message: '',
+    deliveryMethod: 'pickup', 
+    date: '',
+    time: '',
+    location: '',
+    customer: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: ''
+    },
+    paymentMethod: 'card' // 'card', 'paypal', 'apple'
+  });
+
+  // --- Calcul du prix total ---
+  const totalPrice = useMemo(() => {
+    let total = selections.shape.price + selections.tier.price + selections.biscuit.price + selections.filling.price + selections.theme.price;
+    selections.decorations.forEach(d => total += d.price);
+    if (selections.deliveryMethod === 'delivery') total += 15;
+    return total;
+  }, [selections]);
+
+  const isOverBudget = totalPrice > budget;
+
+  // --- Handlers ---
+  const toggleDecoration = (deco) => {
+    setSelections(prev => {
+      const exists = prev.decorations.find(d => d.id === deco.id);
+      if (exists) {
+        return { ...prev, decorations: prev.decorations.filter(d => d.id !== deco.id) };
+      }
+      return { ...prev, decorations: [...prev.decorations, deco] };
+    });
+  };
+
+  const updateSelection = (key, value) => {
+    setSelections(prev => ({ ...prev, [key]: value }));
+  };
+
+  const updateCustomer = (key, value) => {
+    setSelections(prev => ({
+      ...prev,
+      customer: { ...prev.customer, [key]: value }
+    }));
+  };
+
+  const nextStep = () => {
+    if (step === 7) {
+      handlePayment();
+    } else {
+      setStep(s => Math.min(s + 1, 8));
+      window.scrollTo(0, 0);
+    }
+  };
+
+  const prevStep = () => setStep(s => Math.max(s - 1, 1));
+
+  const handlePayment = () => {
+    setIsProcessing(true);
+    // Simulation d'une transaction bancaire
+    setTimeout(() => {
+      setIsProcessing(false);
+      setStep(8);
+    }, 2500);
+  };
+
+  // --- Renders par étapes ---
+  const renderStep = () => {
+    switch (step) {
+      case 1: // Architecture
+        return (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div>
+              <h2 className="text-2xl font-serif text-gray-800 flex items-center gap-2 mb-4">
+                <Layout className="w-6 h-6 text-pink-500" /> 1. Forme & Architecture
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {CAKE_OPTIONS.shapes.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => updateSelection('shape', s)}
+                    className={`p-4 border-2 rounded-2xl transition-all text-center ${
+                      selections.shape.id === s.id ? 'border-pink-500 bg-pink-50 ring-2 ring-pink-100' : 'border-gray-100'
+                    }`}
+                  >
+                    <div className="text-2xl mb-1">{s.icon}</div>
+                    <div className="font-bold text-sm">{s.label}</div>
+                    <div className="text-pink-600 text-xs">+{s.price}€</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-serif text-gray-700 mb-4">Nombre d'étages</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {CAKE_OPTIONS.tiers.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => updateSelection('tier', t)}
+                    className={`p-4 border-2 rounded-xl transition-all ${
+                      selections.tier.id === t.id ? 'border-pink-500 bg-pink-50' : 'border-gray-100'
+                    }`}
+                  >
+                    <div className="text-xl mb-1">{t.icon}</div>
+                    <div className="font-bold text-xs truncate">{t.label}</div>
+                    <div className="text-pink-600 font-bold">{t.price}€</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 2: // Saveurs
+        return (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+            <h2 className="text-2xl font-serif text-gray-800 flex items-center gap-2">
+              <Cake className="w-6 h-6 text-pink-500" /> 2. Saveurs & Gourmandise
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <label className="font-bold text-gray-600 text-sm">Base du biscuit</label>
+                <div className="grid grid-cols-1 gap-2">
+                  {CAKE_OPTIONS.biscuits.map(b => (
+                    <button
+                      key={b.id}
+                      onClick={() => updateSelection('biscuit', b)}
+                      className={`p-3 border-2 rounded-xl flex justify-between items-center ${
+                        selections.biscuit.id === b.id ? 'border-pink-500 bg-pink-50' : 'border-gray-100'
+                      }`}
+                    >
+                      <span className="text-sm font-medium">{b.label}</span>
+                      <span className="text-xs text-pink-500">+{b.price}€</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-4">
+                <label className="font-bold text-gray-600 text-sm">Garniture intérieure</label>
+                <div className="grid grid-cols-1 gap-2">
+                  {CAKE_OPTIONS.fillings.map(f => (
+                    <button
+                      key={f.id}
+                      onClick={() => updateSelection('filling', f)}
+                      className={`p-3 border-2 rounded-xl flex justify-between items-center ${
+                        selections.filling.id === f.id ? 'border-pink-500 bg-pink-50' : 'border-gray-100'
+                      }`}
+                    >
+                      <span className="text-sm font-medium">{f.label}</span>
+                      <span className="text-xs text-pink-500">+{f.price}€</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 3: // Style
+        return (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+            <h2 className="text-2xl font-serif text-gray-800 flex items-center gap-2">
+              <Palette className="w-6 h-6 text-pink-500" /> 3. Thème & Esthétique
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {CAKE_OPTIONS.themes.map(th => (
+                <button
+                  key={th.id}
+                  onClick={() => updateSelection('theme', th)}
+                  className={`p-5 border-2 rounded-2xl text-left transition-all ${
+                    selections.theme.id === th.id ? 'border-pink-500 bg-pink-50' : 'border-gray-100'
+                  }`}
+                >
+                  <div className="font-bold text-gray-800">{th.label}</div>
+                  <div className="text-xs text-gray-500 mb-2">{th.desc}</div>
+                  <div className="text-pink-600 font-bold">+{th.price}€</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 4: // Personnalisation
+        return (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+            <h2 className="text-2xl font-serif text-gray-800 flex items-center gap-2">
+              <Star className="w-6 h-6 text-pink-500" /> 4. Touches Finales
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {CAKE_OPTIONS.decorations.map(d => {
+                const isSelected = selections.decorations.find(item => item.id === d.id);
+                return (
+                  <button
+                    key={d.id}
+                    onClick={() => toggleDecoration(d)}
+                    className={`p-4 border-2 rounded-xl text-center transition-all ${
+                      isSelected ? 'border-pink-500 bg-pink-50' : 'border-gray-100'
+                    }`}
+                  >
+                    <div className="text-sm font-medium mb-1">{d.label}</div>
+                    <div className="text-pink-600 font-bold text-xs">+{d.price}€</div>
+                  </button>
+                );
+              })}
+            </div>
+            
+            <div className="bg-gray-50 p-6 rounded-2xl">
+              <label className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-3">
+                <MessageSquare className="w-4 h-4" /> Message sur le gâteau (optionnel)
+              </label>
+              <textarea 
+                className="w-full p-4 rounded-xl border-white focus:ring-2 focus:ring-pink-200 outline-none text-sm"
+                placeholder="Ex: Joyeux Anniversaire Emma !"
+                value={selections.message}
+                onChange={(e) => updateSelection('message', e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
+        );
+
+      case 5: // Logistique
+        return (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+            <h2 className="text-2xl font-serif text-gray-800 flex items-center gap-2">
+              <Truck className="w-6 h-6 text-pink-500" /> 5. Réception & Livraison
+            </h2>
+            
+            <div className="flex gap-4 p-1 bg-gray-100 rounded-2xl">
+              <button 
+                onClick={() => updateSelection('deliveryMethod', 'pickup')}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${
+                  selections.deliveryMethod === 'pickup' ? 'bg-white shadow-sm text-pink-600' : 'text-gray-500'
+                }`}
+              >
+                <Store className="w-4 h-4" /> Retrait (Gratuit)
+              </button>
+              <button 
+                onClick={() => updateSelection('deliveryMethod', 'delivery')}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${
+                  selections.deliveryMethod === 'delivery' ? 'bg-white shadow-sm text-pink-600' : 'text-gray-500'
+                }`}
+              >
+                <Truck className="w-4 h-4" /> Livraison (+15€)
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">Date</label>
+                <input type="date" className="w-full p-4 border rounded-xl" value={selections.date} onChange={(e) => updateSelection('date', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">Heure</label>
+                <input type="time" className="w-full p-4 border rounded-xl" value={selections.time} onChange={(e) => updateSelection('time', e.target.value)} />
+              </div>
+              {selections.deliveryMethod === 'delivery' && (
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Adresse complète</label>
+                  <input type="text" placeholder="Rue, Code Postal, Ville" className="w-full p-4 border rounded-xl" value={selections.location} onChange={(e) => updateSelection('location', e.target.value)} />
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 6: // Informations Client
+        return (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+            <h2 className="text-2xl font-serif text-gray-800 flex items-center gap-2">
+              <User className="w-6 h-6 text-pink-500" /> 6. Vos Coordonnées
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">Prénom</label>
+                <div className="relative">
+                  <User className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input 
+                    type="text" 
+                    className="w-full pl-12 p-4 border rounded-xl focus:ring-2 focus:ring-pink-200 outline-none"
+                    value={selections.customer.firstName}
+                    onChange={(e) => updateCustomer('firstName', e.target.value)}
+                    placeholder="Jean"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">Nom</label>
+                <input 
+                  type="text" 
+                  className="w-full p-4 border rounded-xl focus:ring-2 focus:ring-pink-200 outline-none"
+                  value={selections.customer.lastName}
+                  onChange={(e) => updateCustomer('lastName', e.target.value)}
+                  placeholder="Dupont"
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">Email</label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input 
+                    type="email" 
+                    className="w-full pl-12 p-4 border rounded-xl focus:ring-2 focus:ring-pink-200 outline-none"
+                    value={selections.customer.email}
+                    onChange={(e) => updateCustomer('email', e.target.value)}
+                    placeholder="jean.dupont@exemple.com"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">Téléphone</label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input 
+                    type="tel" 
+                    className="w-full pl-12 p-4 border rounded-xl focus:ring-2 focus:ring-pink-200 outline-none"
+                    value={selections.customer.phone}
+                    onChange={(e) => updateCustomer('phone', e.target.value)}
+                    placeholder="06 00 00 00 00"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 7: // Paiement
+        return (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+            <h2 className="text-2xl font-serif text-gray-800 flex items-center gap-2">
+              <CreditCard className="w-6 h-6 text-pink-500" /> 7. Mode de Paiement
+            </h2>
+            
+            <div className="space-y-4">
+              <button 
+                onClick={() => updateSelection('paymentMethod', 'card')}
+                className={`w-full p-6 border-2 rounded-2xl flex items-center justify-between transition-all ${
+                  selections.paymentMethod === 'card' ? 'border-pink-500 bg-pink-50 shadow-md' : 'border-gray-100 hover:border-pink-100'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500">
+                    <CreditCard className="w-6 h-6" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-bold">Carte Bancaire</div>
+                    <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">Visa, Mastercard, Amex</div>
+                  </div>
+                </div>
+                {selections.paymentMethod === 'card' && <CheckCircle className="w-6 h-6 text-pink-500" />}
+              </button>
+
+              <button 
+                onClick={() => updateSelection('paymentMethod', 'paypal')}
+                className={`w-full p-6 border-2 rounded-2xl flex items-center justify-between transition-all ${
+                  selections.paymentMethod === 'paypal' ? 'border-pink-500 bg-pink-50 shadow-md' : 'border-gray-100 hover:border-pink-100'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
+                    <DollarSign className="w-6 h-6" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-bold">PayPal</div>
+                    <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">Paiement sécurisé en un clic</div>
+                  </div>
+                </div>
+                {selections.paymentMethod === 'paypal' && <CheckCircle className="w-6 h-6 text-pink-500" />}
+              </button>
+
+              <button 
+                onClick={() => updateSelection('paymentMethod', 'apple')}
+                className={`w-full p-6 border-2 rounded-2xl flex items-center justify-between transition-all ${
+                  selections.paymentMethod === 'apple' ? 'border-pink-500 bg-pink-50 shadow-md' : 'border-gray-100 hover:border-pink-100'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center text-white">
+                    <Star className="w-6 h-6" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-bold">Apple Pay</div>
+                    <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">Touch ID ou Face ID</div>
+                  </div>
+                </div>
+                {selections.paymentMethod === 'apple' && <CheckCircle className="w-6 h-6 text-pink-500" />}
+              </button>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-3xl flex items-center gap-4">
+              <ShieldCheck className="w-10 h-10 text-green-500 shrink-0" />
+              <div className="text-xs text-gray-500 leading-relaxed">
+                Toutes vos transactions sont sécurisées par un cryptage SSL de 256 bits. Nous ne stockons aucune de vos données bancaires.
+              </div>
+            </div>
+          </div>
+        );
+
+      case 8: // Confirmation Finale
+        return (
+          <div className="space-y-8 animate-in zoom-in-95 duration-700 py-12 text-center">
+            <div className="relative inline-block">
+              <div className="w-24 h-24 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-green-100">
+                <PackageCheck className="w-12 h-12" />
+              </div>
+              <div className="absolute -top-2 -right-2 bg-white p-2 rounded-full shadow-md animate-bounce">
+                🍰
+              </div>
+            </div>
+            
+            <div>
+              <h2 className="text-4xl font-serif font-black text-gray-900 mb-2">Merci pour votre commande !</h2>
+              <p className="text-gray-500">Votre numéro de commande est le <span className="font-black text-gray-800">#PAT-{Math.floor(Math.random() * 90000) + 10000}</span></p>
+            </div>
+
+            <div className="bg-white border-2 border-gray-100 rounded-[2.5rem] p-10 max-w-xl mx-auto space-y-6 text-left">
+              <div className="flex justify-between items-start border-b border-gray-50 pb-6">
+                <div>
+                  <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Livraison prévue</h4>
+                  <p className="font-bold text-gray-800">{selections.date} à {selections.time}</p>
+                </div>
+                <div className="text-right">
+                  <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Client</h4>
+                  <p className="font-bold text-gray-800">{selections.customer.firstName} {selections.customer.lastName}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Résumé du gâteau</h4>
+                <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl">
+                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-2xl shadow-sm">
+                    {selections.tier.icon}
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm">{selections.shape.label} - {selections.tier.label}</div>
+                    <div className="text-xs text-gray-500">{selections.biscuit.label} & {selections.filling.label}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-pink-50 rounded-2xl text-pink-700 text-sm flex items-center gap-3">
+                <Info className="w-4 h-4 shrink-0" />
+                Un e-mail de confirmation vient de vous être envoyé. Notre équipe vous contactera 48h avant pour les derniers détails.
+              </div>
+
+              <button 
+                onClick={() => window.location.reload()}
+                className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all"
+              >
+                Retour à l'accueil
+              </button>
+            </div>
+          </div>
+        );
+      default: return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#faf7f5] text-gray-900 font-sans pb-24">
+      {/* Header Premium */}
+      <header className="bg-white/90 backdrop-blur-lg sticky top-0 z-50 border-b border-pink-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-tr from-pink-500 to-rose-400 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-pink-200">
+              <Cake className="w-7 h-7" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-serif font-black tracking-tighter text-gray-800 leading-none">Pâtiss’Art</h1>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-pink-400">Atelier Cake Design</span>
+            </div>
+          </div>
+          <div className="hidden md:flex gap-8 text-xs font-bold uppercase tracking-widest text-gray-400">
+            <a href="#" className="hover:text-pink-500 transition-colors">Notre Story</a>
+            <a href="#" className="hover:text-pink-500 transition-colors">Galerie</a>
+            <a href="#" className="hover:text-pink-500 transition-colors">Avis</a>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-6 mt-10 grid grid-cols-1 lg:grid-cols-4 gap-10">
+        
+        {/* Left Side: Configurator */}
+        <div className="lg:col-span-3 space-y-8">
+          {/* Stepper Dynamique */}
+          <div className="flex items-center justify-between mb-10 overflow-x-auto pb-4 px-2">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+              <div key={i} className="flex items-center shrink-0">
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-black transition-all shadow-md ${
+                  step === i ? 'bg-pink-500 text-white scale-110' : step > i ? 'bg-green-500 text-white' : 'bg-white text-gray-300'
+                }`}>
+                  {step > i ? '✓' : i}
+                </div>
+                {i < 8 && <div className={`h-1 w-4 mx-1 md:w-8 md:mx-2 rounded-full ${step > i ? 'bg-green-500' : 'bg-gray-200'}`} />}
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-white p-6 md:p-12 rounded-[3rem] shadow-2xl shadow-pink-100/30 border border-white min-h-[600px] relative overflow-hidden">
+            {/* Overlay de chargement pour le paiement */}
+            {isProcessing && (
+              <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-300">
+                <div className="w-16 h-16 border-4 border-pink-100 border-t-pink-500 rounded-full animate-spin mb-6" />
+                <h3 className="text-xl font-bold text-gray-800">Sécurisation de la transaction...</h3>
+                <p className="text-gray-500 text-sm">Veuillez ne pas fermer cette fenêtre.</p>
+              </div>
+            )}
+
+            {/* Background pattern */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-pink-50 rounded-full blur-3xl opacity-50 -mr-32 -mt-32" />
+            
+            {renderStep()}
+
+            {/* Navigation Buttons */}
+            {step < 8 && (
+              <div className="flex justify-between mt-12 pt-8 border-t border-gray-50">
+                <button 
+                  onClick={prevStep}
+                  className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-bold transition-all ${
+                    step === 1 ? 'opacity-0 pointer-events-none' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                  }`}
+                >
+                  <ChevronLeft className="w-5 h-5" /> Précédent
+                </button>
+                <button 
+                  onClick={nextStep}
+                  className={`flex items-center gap-2 px-10 py-4 bg-pink-500 text-white rounded-2xl font-bold shadow-xl shadow-pink-200 hover:bg-pink-600 active:scale-95 transition-all ${
+                    step === 7 ? 'bg-black hover:bg-gray-800' : ''
+                  }`}
+                >
+                  {step === 7 ? 'Payer ' + totalPrice + '€' : 'Suivant'} <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Side: Sidebar Price & Selection */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-pink-50 sticky top-28">
+            <h3 className="text-xl font-serif font-bold mb-8 flex items-center gap-2">
+              <DollarSign className="w-6 h-6 text-pink-500" /> Votre Projet
+            </h3>
+            
+            {/* Budget Monitoring */}
+            <div className="space-y-4 mb-10 bg-pink-50/50 p-5 rounded-3xl">
+              <div className="flex justify-between items-end">
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Budget Idéal</span>
+                <span className="text-2xl font-black text-gray-800">{budget}€</span>
+              </div>
+              <input 
+                type="range" min="50" max="1000" step="10"
+                value={budget}
+                onChange={(e) => setBudget(parseInt(e.target.value))}
+                className="w-full h-2 bg-white rounded-lg appearance-none cursor-pointer accent-pink-500"
+              />
+            </div>
+
+            {/* Price Visualization */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-bold text-gray-500 uppercase">Devis actuel</span>
+                <span className={`text-3xl font-black ${isOverBudget ? 'text-red-500' : 'text-pink-600'}`}>
+                  {totalPrice}€
+                </span>
+              </div>
+              
+              <div className="relative h-6 w-full bg-gray-100 rounded-full overflow-hidden p-1 shadow-inner">
+                <div 
+                  className={`h-full rounded-full transition-all duration-700 ease-out ${isOverBudget ? 'bg-gradient-to-r from-red-400 to-rose-600' : 'bg-gradient-to-r from-pink-400 to-pink-600'}`}
+                  style={{ width: `${Math.min((totalPrice / budget) * 100, 100)}%` }}
+                />
+              </div>
+
+              {isOverBudget && (
+                <div className="bg-red-50 p-4 rounded-2xl animate-bounce">
+                  <div className="flex items-center gap-2 text-red-600 text-xs font-bold mb-1">
+                    <Info className="w-4 h-4" /> Alerte Budget
+                  </div>
+                  <p className="text-[11px] text-red-500 leading-relaxed">
+                    Votre création dépasse votre cible de <strong>{totalPrice - budget}€</strong>.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Summary list */}
+            <div className="mt-10 pt-10 border-t border-gray-50 space-y-4">
+              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Sélection en cours</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-400 italic">Forme</span>
+                  <span className="font-bold">{selections.shape.label}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400 italic">Biscuit</span>
+                  <span className="font-bold">{selections.biscuit.label}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400 italic">Thème</span>
+                  <span className="font-bold">{selections.theme.label}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400 italic">Paiement</span>
+                  <span className="font-bold uppercase text-[10px]">{selections.paymentMethod}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-gray-900 to-black p-8 rounded-[2.5rem] text-white shadow-2xl overflow-hidden relative group">
+            <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-pink-500/20 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
+            <h4 className="font-serif text-2xl mb-2">Besoin d'aide ?</h4>
+            <p className="text-xs text-gray-400 mb-6 leading-relaxed">Nos designers sont disponibles pour discuter de votre projet sur-mesure par téléphone.</p>
+            <button className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">
+              Appeler l'Atelier
+            </button>
+          </div>
+        </div>
+      </main>
+
+      {/* Mobile Sticky Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-gray-100 p-4 flex lg:hidden items-center justify-between z-[60] shadow-2xl">
+        <div>
+          <span className="text-[10px] font-black text-gray-400 uppercase">Devis</span>
+          <div className={`text-2xl font-black ${isOverBudget ? 'text-red-500' : 'text-pink-600'}`}>{totalPrice}€</div>
+        </div>
+        {step < 8 && (
+          <button 
+            onClick={nextStep}
+            className="bg-pink-500 text-white px-10 py-4 rounded-2xl font-bold shadow-lg shadow-pink-200 active:scale-95 transition-all"
+          >
+            {step === 7 ? 'Payer' : 'Suivant'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default App;
