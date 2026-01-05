@@ -1,721 +1,746 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Cake, 
-  ChevronRight, 
-  ChevronLeft, 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  CreditCard, 
-  Star, 
-  CheckCircle,
-  Info,
-  DollarSign,
-  Heart,
-  Layout,
-  MessageSquare,
-  Truck,
-  Store,
-  Palette,
-  User,
-  Mail,
-  Phone,
-  ShieldCheck,
-  PackageCheck
-} from 'lucide-react';
-
-// --- Configuration étendue des options ---
-const CAKE_OPTIONS = {
-  shapes: [
-    { id: 'round', label: 'Rond Classique', price: 0, icon: '⚪' },
-    { id: 'square', label: 'Carré Moderne', price: 10, icon: '⬜' },
-    { id: 'heart', label: 'Cœur Romantique', price: 15, icon: '❤️' },
-  ],
-  tiers: [
-    { id: 'mini', label: 'Mini (4-6 parts)', price: 35, icon: '🧁' },
-    { id: '1', label: '1 Étage (10-15 parts)', price: 55, icon: '🎂' },
-    { id: '2', label: '2 Étages (25-30 parts)', price: 95, icon: '🎂🎂' },
-    { id: '3', label: '3 Étages (50+ parts)', price: 160, icon: '🏰' },
-  ],
-  biscuits: [
-    { id: 'vanilla', label: 'Génoise Vanille', price: 0 },
-    { id: 'choco', label: 'Génoise Chocolat', price: 0 },
-    { id: 'lemon', label: 'Citron Zesté', price: 5 },
-    { id: 'almond', label: 'Amande Douce', price: 8 },
-  ],
-  fillings: [
-    { id: 'ganache_choco', label: 'Ganache Chocolat Noir', price: 5 },
-    { id: 'fruit_rouge', label: 'Confit Framboise', price: 10 },
-    { id: 'praline', label: 'Croustillant Praliné', price: 12 },
-    { id: 'passion', label: 'Crème Passion', price: 15 },
-  ],
-  themes: [
-    { id: 'wedding', label: 'Mariage / Chic', price: 30, desc: 'Perles, rubans et élégance' },
-    { id: 'birthday', label: 'Anniversaire Fun', price: 20, desc: 'Confettis et couleurs vives' },
-    { id: 'minimalist', label: 'Nude / Boho', price: 15, desc: 'Épuré et fleurs séchées' },
-    { id: 'kids', label: 'Enfants / Cartoon', price: 40, desc: 'Figurines et décors 3D' },
-  ],
-  decorations: [
-    { id: 'flowers', label: 'Fleurs Fraîches', price: 20 },
-    { id: 'gold', label: 'Feuilles d\'Or 24k', price: 35 },
-    { id: 'macarons', label: 'Duo de Macarons', price: 12 },
-    { id: 'handpainted', label: 'Peinture à la main', price: 45 },
-    { id: 'glitter', label: 'Paillettes Comestibles', price: 8 },
-    { id: 'candles', label: 'Bougies Premium', price: 5 },
-  ]
-};
-
-const App = () => {
-  const [step, setStep] = useState(1);
-  const [budget, setBudget] = useState(250);
-  const [isProcessing, setIsProcessing] = useState(false);
-  
-  const [selections, setSelections] = useState({
-    shape: CAKE_OPTIONS.shapes[0],
-    tier: CAKE_OPTIONS.tiers[1],
-    biscuit: CAKE_OPTIONS.biscuits[0],
-    filling: CAKE_OPTIONS.fillings[0],
-    theme: CAKE_OPTIONS.themes[1],
-    decorations: [],
-    message: '',
-    deliveryMethod: 'pickup', 
-    date: '',
-    time: '',
-    location: '',
-    customer: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: ''
-    },
-    paymentMethod: 'card' // 'card', 'paypal', 'apple'
-  });
-
-  // --- Calcul du prix total ---
-  const totalPrice = useMemo(() => {
-    let total = selections.shape.price + selections.tier.price + selections.biscuit.price + selections.filling.price + selections.theme.price;
-    selections.decorations.forEach(d => total += d.price);
-    if (selections.deliveryMethod === 'delivery') total += 15;
-    return total;
-  }, [selections]);
-
-  const isOverBudget = totalPrice > budget;
-
-  // --- Handlers ---
-  const toggleDecoration = (deco) => {
-    setSelections(prev => {
-      const exists = prev.decorations.find(d => d.id === deco.id);
-      if (exists) {
-        return { ...prev, decorations: prev.decorations.filter(d => d.id !== deco.id) };
-      }
-      return { ...prev, decorations: [...prev.decorations, deco] };
-    });
-  };
-
-  const updateSelection = (key, value) => {
-    setSelections(prev => ({ ...prev, [key]: value }));
-  };
-
-  const updateCustomer = (key, value) => {
-    setSelections(prev => ({
-      ...prev,
-      customer: { ...prev.customer, [key]: value }
-    }));
-  };
-
-  const nextStep = () => {
-    if (step === 7) {
-      handlePayment();
-    } else {
-      setStep(s => Math.min(s + 1, 8));
-      window.scrollTo(0, 0);
-    }
-  };
-
-  const prevStep = () => setStep(s => Math.max(s - 1, 1));
-
-  const handlePayment = () => {
-    setIsProcessing(true);
-    // Simulation d'une transaction bancaire
-    setTimeout(() => {
-      setIsProcessing(false);
-      setStep(8);
-    }, 2500);
-  };
-
-  // --- Renders par étapes ---
-  const renderStep = () => {
-    switch (step) {
-      case 1: // Architecture
-        return (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div>
-              <h2 className="text-2xl font-serif text-gray-800 flex items-center gap-2 mb-4">
-                <Layout className="w-6 h-6 text-pink-500" /> 1. Forme & Architecture
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {CAKE_OPTIONS.shapes.map(s => (
-                  <button
-                    key={s.id}
-                    onClick={() => updateSelection('shape', s)}
-                    className={`p-4 border-2 rounded-2xl transition-all text-center ${
-                      selections.shape.id === s.id ? 'border-pink-500 bg-pink-50 ring-2 ring-pink-100' : 'border-gray-100'
-                    }`}
-                  >
-                    <div className="text-2xl mb-1">{s.icon}</div>
-                    <div className="font-bold text-sm">{s.label}</div>
-                    <div className="text-pink-600 text-xs">+{s.price}€</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-serif text-gray-700 mb-4">Nombre d'étages</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {CAKE_OPTIONS.tiers.map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => updateSelection('tier', t)}
-                    className={`p-4 border-2 rounded-xl transition-all ${
-                      selections.tier.id === t.id ? 'border-pink-500 bg-pink-50' : 'border-gray-100'
-                    }`}
-                  >
-                    <div className="text-xl mb-1">{t.icon}</div>
-                    <div className="font-bold text-xs truncate">{t.label}</div>
-                    <div className="text-pink-600 font-bold">{t.price}€</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-
-      case 2: // Saveurs
-        return (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-            <h2 className="text-2xl font-serif text-gray-800 flex items-center gap-2">
-              <Cake className="w-6 h-6 text-pink-500" /> 2. Saveurs & Gourmandise
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <label className="font-bold text-gray-600 text-sm">Base du biscuit</label>
-                <div className="grid grid-cols-1 gap-2">
-                  {CAKE_OPTIONS.biscuits.map(b => (
-                    <button
-                      key={b.id}
-                      onClick={() => updateSelection('biscuit', b)}
-                      className={`p-3 border-2 rounded-xl flex justify-between items-center ${
-                        selections.biscuit.id === b.id ? 'border-pink-500 bg-pink-50' : 'border-gray-100'
-                      }`}
-                    >
-                      <span className="text-sm font-medium">{b.label}</span>
-                      <span className="text-xs text-pink-500">+{b.price}€</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-4">
-                <label className="font-bold text-gray-600 text-sm">Garniture intérieure</label>
-                <div className="grid grid-cols-1 gap-2">
-                  {CAKE_OPTIONS.fillings.map(f => (
-                    <button
-                      key={f.id}
-                      onClick={() => updateSelection('filling', f)}
-                      className={`p-3 border-2 rounded-xl flex justify-between items-center ${
-                        selections.filling.id === f.id ? 'border-pink-500 bg-pink-50' : 'border-gray-100'
-                      }`}
-                    >
-                      <span className="text-sm font-medium">{f.label}</span>
-                      <span className="text-xs text-pink-500">+{f.price}€</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 3: // Style
-        return (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-            <h2 className="text-2xl font-serif text-gray-800 flex items-center gap-2">
-              <Palette className="w-6 h-6 text-pink-500" /> 3. Thème & Esthétique
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {CAKE_OPTIONS.themes.map(th => (
-                <button
-                  key={th.id}
-                  onClick={() => updateSelection('theme', th)}
-                  className={`p-5 border-2 rounded-2xl text-left transition-all ${
-                    selections.theme.id === th.id ? 'border-pink-500 bg-pink-50' : 'border-gray-100'
-                  }`}
-                >
-                  <div className="font-bold text-gray-800">{th.label}</div>
-                  <div className="text-xs text-gray-500 mb-2">{th.desc}</div>
-                  <div className="text-pink-600 font-bold">+{th.price}€</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 4: // Personnalisation
-        return (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-            <h2 className="text-2xl font-serif text-gray-800 flex items-center gap-2">
-              <Star className="w-6 h-6 text-pink-500" /> 4. Touches Finales
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {CAKE_OPTIONS.decorations.map(d => {
-                const isSelected = selections.decorations.find(item => item.id === d.id);
-                return (
-                  <button
-                    key={d.id}
-                    onClick={() => toggleDecoration(d)}
-                    className={`p-4 border-2 rounded-xl text-center transition-all ${
-                      isSelected ? 'border-pink-500 bg-pink-50' : 'border-gray-100'
-                    }`}
-                  >
-                    <div className="text-sm font-medium mb-1">{d.label}</div>
-                    <div className="text-pink-600 font-bold text-xs">+{d.price}€</div>
-                  </button>
-                );
-              })}
-            </div>
-            
-            <div className="bg-gray-50 p-6 rounded-2xl">
-              <label className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-3">
-                <MessageSquare className="w-4 h-4" /> Message sur le gâteau (optionnel)
-              </label>
-              <textarea 
-                className="w-full p-4 rounded-xl border-white focus:ring-2 focus:ring-pink-200 outline-none text-sm"
-                placeholder="Ex: Joyeux Anniversaire Emma !"
-                value={selections.message}
-                onChange={(e) => updateSelection('message', e.target.value)}
-                rows={2}
-              />
-            </div>
-          </div>
-        );
-
-      case 5: // Logistique
-        return (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-            <h2 className="text-2xl font-serif text-gray-800 flex items-center gap-2">
-              <Truck className="w-6 h-6 text-pink-500" /> 5. Réception & Livraison
-            </h2>
-            
-            <div className="flex gap-4 p-1 bg-gray-100 rounded-2xl">
-              <button 
-                onClick={() => updateSelection('deliveryMethod', 'pickup')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${
-                  selections.deliveryMethod === 'pickup' ? 'bg-white shadow-sm text-pink-600' : 'text-gray-500'
-                }`}
-              >
-                <Store className="w-4 h-4" /> Retrait (Gratuit)
-              </button>
-              <button 
-                onClick={() => updateSelection('deliveryMethod', 'delivery')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${
-                  selections.deliveryMethod === 'delivery' ? 'bg-white shadow-sm text-pink-600' : 'text-gray-500'
-                }`}
-              >
-                <Truck className="w-4 h-4" /> Livraison (+15€)
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase">Date</label>
-                <input type="date" className="w-full p-4 border rounded-xl" value={selections.date} onChange={(e) => updateSelection('date', e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase">Heure</label>
-                <input type="time" className="w-full p-4 border rounded-xl" value={selections.time} onChange={(e) => updateSelection('time', e.target.value)} />
-              </div>
-              {selections.deliveryMethod === 'delivery' && (
-                <div className="md:col-span-2 space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Adresse complète</label>
-                  <input type="text" placeholder="Rue, Code Postal, Ville" className="w-full p-4 border rounded-xl" value={selections.location} onChange={(e) => updateSelection('location', e.target.value)} />
-                </div>
-              )}
-            </div>
-          </div>
-        );
-
-      case 6: // Informations Client
-        return (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-            <h2 className="text-2xl font-serif text-gray-800 flex items-center gap-2">
-              <User className="w-6 h-6 text-pink-500" /> 6. Vos Coordonnées
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase">Prénom</label>
-                <div className="relative">
-                  <User className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input 
-                    type="text" 
-                    className="w-full pl-12 p-4 border rounded-xl focus:ring-2 focus:ring-pink-200 outline-none"
-                    value={selections.customer.firstName}
-                    onChange={(e) => updateCustomer('firstName', e.target.value)}
-                    placeholder="Jean"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase">Nom</label>
-                <input 
-                  type="text" 
-                  className="w-full p-4 border rounded-xl focus:ring-2 focus:ring-pink-200 outline-none"
-                  value={selections.customer.lastName}
-                  onChange={(e) => updateCustomer('lastName', e.target.value)}
-                  placeholder="Dupont"
-                />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <label className="text-xs font-bold text-gray-500 uppercase">Email</label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input 
-                    type="email" 
-                    className="w-full pl-12 p-4 border rounded-xl focus:ring-2 focus:ring-pink-200 outline-none"
-                    value={selections.customer.email}
-                    onChange={(e) => updateCustomer('email', e.target.value)}
-                    placeholder="jean.dupont@exemple.com"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <label className="text-xs font-bold text-gray-500 uppercase">Téléphone</label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input 
-                    type="tel" 
-                    className="w-full pl-12 p-4 border rounded-xl focus:ring-2 focus:ring-pink-200 outline-none"
-                    value={selections.customer.phone}
-                    onChange={(e) => updateCustomer('phone', e.target.value)}
-                    placeholder="06 00 00 00 00"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 7: // Paiement
-        return (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-            <h2 className="text-2xl font-serif text-gray-800 flex items-center gap-2">
-              <CreditCard className="w-6 h-6 text-pink-500" /> 7. Mode de Paiement
-            </h2>
-            
-            <div className="space-y-4">
-              <button 
-                onClick={() => updateSelection('paymentMethod', 'card')}
-                className={`w-full p-6 border-2 rounded-2xl flex items-center justify-between transition-all ${
-                  selections.paymentMethod === 'card' ? 'border-pink-500 bg-pink-50 shadow-md' : 'border-gray-100 hover:border-pink-100'
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500">
-                    <CreditCard className="w-6 h-6" />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-bold">Carte Bancaire</div>
-                    <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">Visa, Mastercard, Amex</div>
-                  </div>
-                </div>
-                {selections.paymentMethod === 'card' && <CheckCircle className="w-6 h-6 text-pink-500" />}
-              </button>
-
-              <button 
-                onClick={() => updateSelection('paymentMethod', 'paypal')}
-                className={`w-full p-6 border-2 rounded-2xl flex items-center justify-between transition-all ${
-                  selections.paymentMethod === 'paypal' ? 'border-pink-500 bg-pink-50 shadow-md' : 'border-gray-100 hover:border-pink-100'
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-                    <DollarSign className="w-6 h-6" />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-bold">PayPal</div>
-                    <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">Paiement sécurisé en un clic</div>
-                  </div>
-                </div>
-                {selections.paymentMethod === 'paypal' && <CheckCircle className="w-6 h-6 text-pink-500" />}
-              </button>
-
-              <button 
-                onClick={() => updateSelection('paymentMethod', 'apple')}
-                className={`w-full p-6 border-2 rounded-2xl flex items-center justify-between transition-all ${
-                  selections.paymentMethod === 'apple' ? 'border-pink-500 bg-pink-50 shadow-md' : 'border-gray-100 hover:border-pink-100'
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center text-white">
-                    <Star className="w-6 h-6" />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-bold">Apple Pay</div>
-                    <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">Touch ID ou Face ID</div>
-                  </div>
-                </div>
-                {selections.paymentMethod === 'apple' && <CheckCircle className="w-6 h-6 text-pink-500" />}
-              </button>
-            </div>
-
-            <div className="bg-gray-50 p-6 rounded-3xl flex items-center gap-4">
-              <ShieldCheck className="w-10 h-10 text-green-500 shrink-0" />
-              <div className="text-xs text-gray-500 leading-relaxed">
-                Toutes vos transactions sont sécurisées par un cryptage SSL de 256 bits. Nous ne stockons aucune de vos données bancaires.
-              </div>
-            </div>
-          </div>
-        );
-
-      case 8: // Confirmation Finale
-        return (
-          <div className="space-y-8 animate-in zoom-in-95 duration-700 py-12 text-center">
-            <div className="relative inline-block">
-              <div className="w-24 h-24 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-green-100">
-                <PackageCheck className="w-12 h-12" />
-              </div>
-              <div className="absolute -top-2 -right-2 bg-white p-2 rounded-full shadow-md animate-bounce">
-                🍰
-              </div>
-            </div>
-            
-            <div>
-              <h2 className="text-4xl font-serif font-black text-gray-900 mb-2">Merci pour votre commande !</h2>
-              <p className="text-gray-500">Votre numéro de commande est le <span className="font-black text-gray-800">#PAT-{Math.floor(Math.random() * 90000) + 10000}</span></p>
-            </div>
-
-            <div className="bg-white border-2 border-gray-100 rounded-[2.5rem] p-10 max-w-xl mx-auto space-y-6 text-left">
-              <div className="flex justify-between items-start border-b border-gray-50 pb-6">
-                <div>
-                  <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Livraison prévue</h4>
-                  <p className="font-bold text-gray-800">{selections.date} à {selections.time}</p>
-                </div>
-                <div className="text-right">
-                  <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Client</h4>
-                  <p className="font-bold text-gray-800">{selections.customer.firstName} {selections.customer.lastName}</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Résumé du gâteau</h4>
-                <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl">
-                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-2xl shadow-sm">
-                    {selections.tier.icon}
-                  </div>
-                  <div>
-                    <div className="font-bold text-sm">{selections.shape.label} - {selections.tier.label}</div>
-                    <div className="text-xs text-gray-500">{selections.biscuit.label} & {selections.filling.label}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-pink-50 rounded-2xl text-pink-700 text-sm flex items-center gap-3">
-                <Info className="w-4 h-4 shrink-0" />
-                Un e-mail de confirmation vient de vous être envoyé. Notre équipe vous contactera 48h avant pour les derniers détails.
-              </div>
-
-              <button 
-                onClick={() => window.location.reload()}
-                className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all"
-              >
-                Retour à l'accueil
-              </button>
-            </div>
-          </div>
-        );
-      default: return null;
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-[#faf7f5] text-gray-900 font-sans pb-24">
-      {/* Header Premium */}
-      <header className="bg-white/90 backdrop-blur-lg sticky top-0 z-50 border-b border-pink-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-tr from-pink-500 to-rose-400 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-pink-200">
-              <Cake className="w-7 h-7" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-serif font-black tracking-tighter text-gray-800 leading-none">Pâtiss’Art</h1>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-pink-400">Atelier Cake Design</span>
-            </div>
-          </div>
-          <div className="hidden md:flex gap-8 text-xs font-bold uppercase tracking-widest text-gray-400">
-            <a href="#" className="hover:text-pink-500 transition-colors">Notre Story</a>
-            <a href="#" className="hover:text-pink-500 transition-colors">Galerie</a>
-            <a href="#" className="hover:text-pink-500 transition-colors">Avis</a>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-6 mt-10 grid grid-cols-1 lg:grid-cols-4 gap-10">
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pâtiss’Art | Atelier Cake Design</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #faf7f5; }
+        .font-serif { font-family: 'Playfair Display', serif; }
         
-        {/* Left Side: Configurator */}
-        <div className="lg:col-span-3 space-y-8">
-          {/* Stepper Dynamique */}
-          <div className="flex items-center justify-between mb-10 overflow-x-auto pb-4 px-2">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-              <div key={i} className="flex items-center shrink-0">
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-black transition-all shadow-md ${
-                  step === i ? 'bg-pink-500 text-white scale-110' : step > i ? 'bg-green-500 text-white' : 'bg-white text-gray-300'
-                }`}>
-                  {step > i ? '✓' : i}
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #fbcfe8; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #f9a8d4; }
+
+        /* Cake Shape Heart Clip-Path */
+        .path-heart {
+            clip-path: path('M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z');
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+
+        .step-transition { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #ec4899;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 0 10px rgba(236, 72, 153, 0.3);
+        }
+    </style>
+</head>
+<body class="text-gray-900 pb-24 lg:pb-0">
+
+    <!-- Header -->
+    <header class="bg-white/90 backdrop-blur-lg sticky top-0 z-50 border-b border-pink-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-pink-500 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                    <i data-lucide="cake" class="w-7 h-7"></i>
                 </div>
-                {i < 8 && <div className={`h-1 w-4 mx-1 md:w-8 md:mx-2 rounded-full ${step > i ? 'bg-green-500' : 'bg-gray-200'}`} />}
-              </div>
-            ))}
-          </div>
+                <div>
+                    <h1 class="text-2xl font-serif font-black tracking-tighter text-gray-800 leading-none">Pâtiss’Art</h1>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-pink-400 font-sans">Atelier Cake Design</span>
+                </div>
+            </div>
+            <div class="hidden md:flex gap-6 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                <span class="hover:text-pink-500 cursor-pointer transition-colors">Galerie</span>
+                <span class="hover:text-pink-500 cursor-pointer transition-colors">Avis Client</span>
+                <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-pink-500 cursor-pointer transition-all">
+                    <i data-lucide="user" class="w-5 h-5"></i>
+                </div>
+            </div>
+        </div>
+    </header>
 
-          <div className="bg-white p-6 md:p-12 rounded-[3rem] shadow-2xl shadow-pink-100/30 border border-white min-h-[600px] relative overflow-hidden">
-            {/* Overlay de chargement pour le paiement */}
-            {isProcessing && (
-              <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-300">
-                <div className="w-16 h-16 border-4 border-pink-100 border-t-pink-500 rounded-full animate-spin mb-6" />
-                <h3 className="text-xl font-bold text-gray-800">Sécurisation de la transaction...</h3>
-                <p className="text-gray-500 text-sm">Veuillez ne pas fermer cette fenêtre.</p>
-              </div>
-            )}
-
-            {/* Background pattern */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-pink-50 rounded-full blur-3xl opacity-50 -mr-32 -mt-32" />
+    <main class="max-w-7xl mx-auto px-4 lg:px-6 mt-6 lg:mt-10 grid grid-cols-1 lg:grid-cols-12 gap-10">
+        
+        <!-- Left Column: Steps -->
+        <div class="lg:col-span-8 space-y-6">
             
-            {renderStep()}
+            <!-- Stepper -->
+            <div id="stepper" class="flex items-center gap-2 overflow-x-auto pb-4 px-2 no-scrollbar">
+                <!-- Stepper items injected by JS -->
+            </div>
 
-            {/* Navigation Buttons */}
-            {step < 8 && (
-              <div className="flex justify-between mt-12 pt-8 border-t border-gray-50">
-                <button 
-                  onClick={prevStep}
-                  className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-bold transition-all ${
-                    step === 1 ? 'opacity-0 pointer-events-none' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-                  }`}
-                >
-                  <ChevronLeft className="w-5 h-5" /> Précédent
-                </button>
-                <button 
-                  onClick={nextStep}
-                  className={`flex items-center gap-2 px-10 py-4 bg-pink-500 text-white rounded-2xl font-bold shadow-xl shadow-pink-200 hover:bg-pink-600 active:scale-95 transition-all ${
-                    step === 7 ? 'bg-black hover:bg-gray-800' : ''
-                  }`}
-                >
-                  {step === 7 ? 'Payer ' + totalPrice + '€' : 'Suivant'} <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            )}
-          </div>
+            <!-- Content Card -->
+            <div class="bg-white p-6 md:p-10 rounded-[2.5rem] lg:rounded-[3.5rem] shadow-2xl shadow-pink-100/30 border border-white min-h-[500px] relative overflow-hidden">
+                <div id="processing-overlay" class="hidden absolute inset-0 z-50 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center">
+                    <div class="w-16 h-16 border-4 border-pink-100 border-t-pink-500 rounded-full animate-spin mb-6"></div>
+                    <h3 class="text-xl font-bold text-gray-800">Sécurisation du paiement...</h3>
+                    <p class="text-gray-500 text-sm">Patientez quelques secondes.</p>
+                </div>
+
+                <div class="absolute top-0 right-0 w-64 h-64 bg-pink-50 rounded-full blur-3xl opacity-50 -mr-32 -mt-32"></div>
+                
+                <div id="step-content" class="step-transition">
+                    <!-- Dynamic Step Content -->
+                </div>
+
+                <!-- Navigation -->
+                <div id="nav-buttons" class="flex justify-between mt-12 pt-8 border-t border-gray-50">
+                    <button id="prev-btn" onclick="prevStep()" class="flex items-center gap-2 px-6 py-3 lg:px-8 lg:py-4 rounded-2xl font-bold transition-all bg-gray-50 text-gray-500 hover:bg-gray-100">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i> Précédent
+                    </button>
+                    <button id="next-btn" onclick="nextStep()" class="flex items-center gap-2 px-8 py-3 lg:px-10 lg:py-4 bg-pink-500 text-white rounded-2xl font-bold shadow-xl shadow-pink-200 hover:bg-pink-600 active:scale-95 transition-all">
+                        Suivant <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
         </div>
 
-        {/* Right Side: Sidebar Price & Selection */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-pink-50 sticky top-28">
-            <h3 className="text-xl font-serif font-bold mb-8 flex items-center gap-2">
-              <DollarSign className="w-6 h-6 text-pink-500" /> Votre Projet
-            </h3>
+        <!-- Right Column: Visualizer & Price -->
+        <div class="lg:col-span-4 space-y-6">
             
-            {/* Budget Monitoring */}
-            <div className="space-y-4 mb-10 bg-pink-50/50 p-5 rounded-3xl">
-              <div className="flex justify-between items-end">
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Budget Idéal</span>
-                <span className="text-2xl font-black text-gray-800">{budget}€</span>
-              </div>
-              <input 
-                type="range" min="50" max="1000" step="10"
-                value={budget}
-                onChange={(e) => setBudget(parseInt(e.target.value))}
-                className="w-full h-2 bg-white rounded-lg appearance-none cursor-pointer accent-pink-500"
-              />
+            <!-- Visualizer Card -->
+            <div class="bg-gradient-to-b from-gray-900 to-gray-800 rounded-[2.5rem] p-8 text-white shadow-2xl overflow-hidden relative">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xs font-bold uppercase tracking-[0.2em] text-pink-400">Aperçu Live</h3>
+                    <i data-lucide="zap" class="w-4 h-4 text-pink-400 fill-pink-400"></i>
+                </div>
+                
+                <div id="cake-visualizer" class="relative h-72 w-full flex flex-col items-center justify-end pb-12 overflow-visible">
+                    <!-- Layers injected by JS -->
+                </div>
+
+                <div class="mt-4 pt-6 border-t border-white/10 text-center">
+                    <p id="preview-labels" class="text-[10px] font-medium text-gray-400 uppercase tracking-widest leading-loose">
+                        Sélectionnez vos options
+                    </p>
+                </div>
             </div>
 
-            {/* Price Visualization */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-bold text-gray-500 uppercase">Devis actuel</span>
-                <span className={`text-3xl font-black ${isOverBudget ? 'text-red-500' : 'text-pink-600'}`}>
-                  {totalPrice}€
-                </span>
-              </div>
-              
-              <div className="relative h-6 w-full bg-gray-100 rounded-full overflow-hidden p-1 shadow-inner">
-                <div 
-                  className={`h-full rounded-full transition-all duration-700 ease-out ${isOverBudget ? 'bg-gradient-to-r from-red-400 to-rose-600' : 'bg-gradient-to-r from-pink-400 to-pink-600'}`}
-                  style={{ width: `${Math.min((totalPrice / budget) * 100, 100)}%` }}
-                />
-              </div>
-
-              {isOverBudget && (
-                <div className="bg-red-50 p-4 rounded-2xl animate-bounce">
-                  <div className="flex items-center gap-2 text-red-600 text-xs font-bold mb-1">
-                    <Info className="w-4 h-4" /> Alerte Budget
-                  </div>
-                  <p className="text-[11px] text-red-500 leading-relaxed">
-                    Votre création dépasse votre cible de <strong>{totalPrice - budget}€</strong>.
-                  </p>
+            <!-- Budget Coach -->
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border border-pink-50">
+                <h3 class="text-xl font-serif font-bold mb-6 flex items-center gap-2">
+                    <i data-lucide="dollar-sign" class="w-6 h-6 text-pink-500"></i> Coach Budget
+                </h3>
+                
+                <div class="space-y-4 mb-8">
+                    <div class="flex justify-between items-end">
+                        <span class="text-[10px] font-black text-gray-400 uppercase">Cible</span>
+                        <span id="budget-target-display" class="text-2xl font-black text-gray-800">300€</span>
+                    </div>
+                    <input type="range" id="budget-range" min="50" max="1500" step="10" value="300" oninput="updateBudget(this.value)" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-pink-500">
                 </div>
-              )}
+
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-gray-500 uppercase">Total Devis</span>
+                        <span id="total-price-display" class="text-3xl font-black text-emerald-600">0€</span>
+                    </div>
+                    
+                    <div class="relative h-6 w-full bg-gray-100 rounded-full overflow-hidden p-1 shadow-inner">
+                        <div id="budget-progress" class="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-700 ease-out" style="width: 0%"></div>
+                    </div>
+
+                    <div id="budget-alert" class="hidden bg-rose-50 p-4 rounded-2xl animate-pulse">
+                        <div class="flex items-center gap-2 text-rose-600 text-[10px] font-black uppercase mb-1">
+                            <i data-lucide="alert-triangle" class="w-3 h-3"></i> Hors Budget
+                        </div>
+                        <p id="budget-alert-text" class="text-[11px] text-rose-500 leading-relaxed font-medium"></p>
+                    </div>
+                </div>
+
+                <div class="mt-8 pt-8 border-t border-gray-50">
+                    <div class="flex gap-2">
+                        <input type="text" id="promo-input" placeholder="Code Promo" class="flex-1 p-3 bg-gray-50 border-none rounded-xl text-xs font-bold uppercase outline-none focus:ring-2 focus:ring-pink-100">
+                        <button onclick="applyPromo()" class="bg-gray-800 text-white px-4 rounded-xl text-[10px] font-bold uppercase hover:bg-black transition-all">Appliquer</button>
+                    </div>
+                    <div id="promo-success" class="hidden text-[10px] text-emerald-600 font-bold mt-2">✨ Réduction appliquée : -20€</div>
+                </div>
             </div>
 
-            {/* Quick Summary list */}
-            <div className="mt-10 pt-10 border-t border-gray-50 space-y-4">
-              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Sélection en cours</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400 italic">Forme</span>
-                  <span className="font-bold">{selections.shape.label}</span>
+            <!-- Trust Badge -->
+            <div class="bg-pink-50 p-6 rounded-[2.5rem] border border-pink-100 flex items-start gap-4">
+                <i data-lucide="gift" class="w-10 h-10 text-pink-500 shrink-0"></i>
+                <div>
+                    <h4 class="font-serif text-lg leading-tight mb-1">Offrez le meilleur</h4>
+                    <p class="text-[10px] text-pink-600 font-bold leading-relaxed opacity-70">Chaque gâteau est une pièce unique réalisée par nos pâtissiers designers.</p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400 italic">Biscuit</span>
-                  <span className="font-bold">{selections.biscuit.label}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400 italic">Thème</span>
-                  <span className="font-bold">{selections.theme.label}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400 italic">Paiement</span>
-                  <span className="font-bold uppercase text-[10px]">{selections.paymentMethod}</span>
-                </div>
-              </div>
             </div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-gray-900 to-black p-8 rounded-[2.5rem] text-white shadow-2xl overflow-hidden relative group">
-            <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-pink-500/20 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
-            <h4 className="font-serif text-2xl mb-2">Besoin d'aide ?</h4>
-            <p className="text-xs text-gray-400 mb-6 leading-relaxed">Nos designers sont disponibles pour discuter de votre projet sur-mesure par téléphone.</p>
-            <button className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">
-              Appeler l'Atelier
-            </button>
-          </div>
         </div>
-      </main>
+    </main>
 
-      {/* Mobile Sticky Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-gray-100 p-4 flex lg:hidden items-center justify-between z-[60] shadow-2xl">
+    <!-- Mobile Footer -->
+    <div id="mobile-sticky-bar" class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 p-4 flex lg:hidden items-center justify-between z-[60] shadow-2xl">
         <div>
-          <span className="text-[10px] font-black text-gray-400 uppercase">Devis</span>
-          <div className={`text-2xl font-black ${isOverBudget ? 'text-red-500' : 'text-pink-600'}`}>{totalPrice}€</div>
+            <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Votre Devis</span>
+            <div id="mobile-total-display" class="text-2xl font-black text-pink-600">0€</div>
         </div>
-        {step < 8 && (
-          <button 
-            onClick={nextStep}
-            className="bg-pink-500 text-white px-10 py-4 rounded-2xl font-bold shadow-lg shadow-pink-200 active:scale-95 transition-all"
-          >
-            {step === 7 ? 'Payer' : 'Suivant'}
-          </button>
-        )}
-      </div>
+        <button id="mobile-next-btn" onclick="nextStep()" class="bg-pink-500 text-white px-8 py-3 rounded-2xl font-bold shadow-xl shadow-pink-200 active:scale-95 transition-all">
+            Suivant
+        </button>
     </div>
-  );
-};
 
-export default App;
+    <script>
+        // --- Configuration ---
+        const CAKE_OPTIONS = {
+            shapes: [
+                { id: 'round', label: 'Rond Classique', price: 0, icon: '⚪', css: 'rounded-full' },
+                { id: 'square', label: 'Carré Moderne', price: 10, icon: '⬜', css: 'rounded-md' },
+                { id: 'heart', label: 'Cœur Romantique', price: 15, icon: '❤️', css: 'path-heart' },
+            ],
+            tiers: [
+                { id: 'mini', label: 'Mini (4-6 parts)', price: 35, icon: '🧁', count: 1 },
+                { id: '1', label: '1 Étage (10-15 parts)', price: 55, icon: '🎂', count: 1 },
+                { id: '2', label: '2 Étages (25-30 parts)', price: 95, icon: '🎂🎂', count: 2 },
+                { id: '3', label: '3 Étages (50+ parts)', price: 160, icon: '🏰', count: 3 },
+            ],
+            dietary: [
+                { id: 'standard', label: 'Standard', price: 0 },
+                { id: 'glutenfree', label: 'Sans Gluten', price: 12 },
+                { id: 'vegan', label: 'Vegan', price: 15 },
+                { id: 'lactosefree', label: 'Sans Lactose', price: 8 },
+            ],
+            biscuits: [
+                { id: 'vanilla', label: 'Génoise Vanille', price: 0, color: '#F3E5AB' },
+                { id: 'choco', label: 'Génoise Chocolat', price: 0, color: '#4E2C23' },
+                { id: 'lemon', label: 'Citron Zesté', price: 5, color: '#FFF44F' },
+                { id: 'almond', label: 'Amande Douce', price: 8, color: '#EADDCA' },
+            ],
+            fillings: [
+                { id: 'ganache_choco', label: 'Ganache Chocolat Noir', price: 5 },
+                { id: 'fruit_rouge', label: 'Confit Framboise', price: 10 },
+                { id: 'praline', label: 'Croustillant Praliné', price: 12 },
+                { id: 'passion', label: 'Crème Passion', price: 15 },
+            ],
+            palettes: [
+                { id: 'pastel', label: 'Douceur Pastel', colors: ['#FFD1DC', '#B2E2F2', '#FDFD96'], price: 0 },
+                { id: 'royal', label: 'Royal Gold', colors: ['#D4AF37', '#FFFFFF', '#000000'], price: 15 },
+                { id: 'vibrant', label: 'Vibrant Pop', colors: ['#FF007F', '#00FFFF', '#FFFF00'], price: 10 },
+                { id: 'nature', label: 'Nature & Bois', colors: ['#8B4513', '#228B22', '#F5F5DC'], price: 5 },
+            ],
+            themes: [
+                { id: 'wedding', label: 'Mariage / Chic', price: 30, icon: 'crown' },
+                { id: 'birthday', label: 'Anniversaire Fun', price: 20, icon: 'gift' },
+                { id: 'minimalist', label: 'Minimaliste', price: 15, icon: 'sparkles' },
+                { id: 'kids', label: 'Enfants', price: 40, icon: 'cake' },
+            ],
+            decorations: [
+                { id: 'flowers', label: 'Fleurs Fraîches', price: 20, icon: 'flower-2' },
+                { id: 'gold', label: 'Feuilles d\'Or 24k', price: 35, icon: 'coins' },
+                { id: 'macarons', label: 'Macarons Artisanaux', price: 12, icon: 'star' },
+                { id: 'handpainted', label: 'Peinture main', price: 45, icon: 'palette' },
+                { id: 'glitter', label: 'Paillettes', price: 8, icon: 'sparkles' },
+                { id: 'candles', label: 'Bougies Premium', price: 5, icon: 'flame' },
+            ],
+            addons: [
+                { id: 'cupcakes', label: 'Pack 12 Cupcakes', price: 45, icon: '🧁' },
+                { id: 'cakepops', label: 'Pack 12 Cake Pops', price: 35, icon: '🍭' },
+                { id: 'stand', label: 'Location Présentoir', price: 25, icon: '🍽️' },
+            ]
+        };
+
+        // --- State Management ---
+        let state = {
+            step: 1,
+            budget: 300,
+            discount: 0,
+            selections: {
+                shape: CAKE_OPTIONS.shapes[0],
+                tier: CAKE_OPTIONS.tiers[1],
+                diet: CAKE_OPTIONS.dietary[0],
+                biscuit: CAKE_OPTIONS.biscuits[0],
+                filling: CAKE_OPTIONS.fillings[0],
+                palette: CAKE_OPTIONS.palettes[0],
+                theme: CAKE_OPTIONS.themes[1],
+                decorations: [],
+                addons: [],
+                message: '',
+                deliveryMethod: 'pickup',
+                date: '',
+                time: '',
+                location: '',
+                customer: { firstName: '', lastName: '', email: '', phone: '' },
+                paymentMethod: 'card'
+            }
+        };
+
+        function init() {
+            render();
+            lucide.createIcons();
+        }
+
+        // --- Core Logic ---
+        function calculateTotal() {
+            let s = state.selections;
+            let total = s.shape.price + s.tier.price + s.diet.price + s.biscuit.price + s.filling.price + s.palette.price + s.theme.price;
+            s.decorations.forEach(d => total += d.price);
+            s.addons.forEach(a => total += a.price);
+            if (s.deliveryMethod === 'delivery') total += 15;
+            return Math.max(0, total - state.discount);
+        }
+
+        function updateBudget(val) {
+            state.budget = parseInt(val);
+            renderBudget();
+        }
+
+        function toggleArrayItem(key, item) {
+            const index = state.selections[key].findIndex(i => i.id === item.id);
+            if (index > -1) {
+                state.selections[key].splice(index, 1);
+            } else {
+                state.selections[key].push(item);
+            }
+            render();
+        }
+
+        function updateSelection(key, value) {
+            state.selections[key] = value;
+            render();
+        }
+
+        function updateCustomer(key, value) {
+            state.selections.customer[key] = value;
+        }
+
+        function applyPromo() {
+            const code = document.getElementById('promo-input').value.toUpperCase();
+            if (code === 'CAKE20') {
+                state.discount = 20;
+                document.getElementById('promo-success').classList.remove('hidden');
+            } else {
+                state.discount = 0;
+                document.getElementById('promo-success').classList.add('hidden');
+            }
+            render();
+        }
+
+        function nextStep() {
+            if (state.step === 8) {
+                document.getElementById('processing-overlay').classList.remove('hidden');
+                setTimeout(() => {
+                    state.step = 9;
+                    render();
+                    document.getElementById('processing-overlay').classList.add('hidden');
+                }, 2000);
+            } else if (state.step < 9) {
+                state.step++;
+                render();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function prevStep() {
+            if (state.step > 1) {
+                state.step--;
+                render();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // --- Rendering ---
+        function render() {
+            renderStepper();
+            renderContent();
+            renderVisualizer();
+            renderBudget();
+            lucide.createIcons();
+        }
+
+        function renderStepper() {
+            const stepper = document.getElementById('stepper');
+            stepper.innerHTML = '';
+            for (let i = 1; i <= 8; i++) {
+                const isActive = state.step === i;
+                const isDone = state.step > i;
+                stepper.innerHTML += `
+                    <div class="flex items-center shrink-0 cursor-pointer" onclick="state.step = ${i}; render();">
+                        <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-black transition-all shadow-md ${
+                            isActive ? 'bg-pink-500 text-white scale-110' : isDone ? 'bg-green-500 text-white' : 'bg-white text-gray-300'
+                        }">
+                            ${isDone ? '✓' : i}
+                        </div>
+                        ${i < 8 ? `<div class="h-1 w-6 mx-1 md:w-8 md:mx-2 rounded-full ${isDone ? 'bg-green-500' : 'bg-gray-200'}"></div>` : ''}
+                    </div>
+                `;
+            }
+        }
+
+        function renderVisualizer() {
+            const visualizer = document.getElementById('cake-visualizer');
+            const labels = document.getElementById('preview-labels');
+            const s = state.selections;
+            const mainColor = s.palette.colors[0];
+            const tiersCount = s.tier.count;
+            const shape = s.shape.id;
+
+            visualizer.innerHTML = `
+                <div class="absolute top-4 animate-float z-50 text-white/80 drop-shadow-xl">
+                    <i data-lucide="${s.theme.icon}" class="w-10 h-10"></i>
+                </div>
+            `;
+
+            for (let i = 0; i < tiersCount; i++) {
+                const inverseIndex = tiersCount - 1 - i;
+                const width = 180 - (inverseIndex * 40);
+                const isHeart = shape === 'heart';
+                
+                let layerStyle = `
+                    width: ${width}px;
+                    height: ${isHeart ? width : 50}px;
+                    z-index: ${inverseIndex + 1};
+                    margin-bottom: ${isHeart ? -(width / 1.5) : -6}px;
+                    background-color: ${mainColor};
+                    background-image: linear-gradient(to right, rgba(0,0,0,0.15) 0%, rgba(255,255,255,0.2) 50%, rgba(0,0,0,0.15) 100%);
+                    box-shadow: inset 0 2px 4px rgba(255,255,255,0.3), 0 10px 15px -3px rgba(0,0,0,0.3);
+                    ${isHeart ? '' : 'border: 1px solid rgba(255,255,255,0.1);'}
+                `;
+
+                visualizer.innerHTML += `
+                    <div class="relative transition-all duration-500 flex items-center justify-center ${isHeart ? 'path-heart' : s.shape.css}" style="${layerStyle}">
+                        ${i === 0 && s.message ? `
+                            <div class="absolute inset-0 flex items-center justify-center px-4 pointer-events-none">
+                                <span class="text-[10px] italic font-serif text-white/90 drop-shadow-lg text-center line-clamp-2" style="transform: translateY(${isHeart ? '-10px' : '5px'})">
+                                    ${s.message}
+                                </span>
+                            </div>
+                        ` : ''}
+                        <div class="absolute inset-0 flex items-center justify-around px-2 opacity-40">
+                            ${s.decorations.slice(0, 3).map(d => `<i data-lucide="${d.icon}" class="w-4 h-4 text-white animate-pulse"></i>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            visualizer.innerHTML += `
+                <div class="relative w-56 h-6 flex flex-col items-center z-0">
+                    <div class="w-full h-full bg-gradient-to-b from-gray-300 to-gray-400 rounded-full shadow-lg border-t border-white/40"></div>
+                    <div class="w-24 h-4 bg-gray-400 -mt-1 rounded-sm shadow-inner opacity-50"></div>
+                </div>
+            `;
+
+            labels.innerHTML = `${s.shape.label} / ${s.tier.label}<br>${s.palette.label} / ${s.theme.label}`;
+            lucide.createIcons();
+        }
+
+        function renderBudget() {
+            const total = calculateTotal();
+            const overBudget = total > state.budget;
+            
+            document.getElementById('budget-target-display').innerText = state.budget + '€';
+            document.getElementById('total-price-display').innerText = total + '€';
+            document.getElementById('total-price-display').className = `text-3xl font-black ${overBudget ? 'text-rose-500' : 'text-emerald-600'}`;
+            
+            const progress = Math.min((total / state.budget) * 100, 100);
+            const bar = document.getElementById('budget-progress');
+            bar.style.width = progress + '%';
+            bar.className = `h-full rounded-full transition-all duration-700 ease-out ${overBudget ? 'bg-gradient-to-r from-rose-400 to-rose-600' : 'bg-gradient-to-r from-emerald-400 to-emerald-600'}`;
+
+            const alert = document.getElementById('budget-alert');
+            if (overBudget) {
+                alert.classList.remove('hidden');
+                document.getElementById('budget-alert-text').innerText = `Dépassement de ${total - state.budget}€.`;
+            } else {
+                alert.classList.add('hidden');
+            }
+
+            document.getElementById('mobile-total-display').innerText = total + '€';
+            document.getElementById('mobile-total-display').className = `text-2xl font-black ${overBudget ? 'text-rose-500' : 'text-pink-600'}`;
+        }
+
+        function renderContent() {
+            const container = document.getElementById('step-content');
+            const nav = document.getElementById('nav-buttons');
+            const s = state.selections;
+
+            // Visibility control
+            if (state.step === 9) nav.classList.add('hidden');
+            else nav.classList.remove('hidden');
+
+            document.getElementById('prev-btn').style.visibility = state.step === 1 ? 'hidden' : 'visible';
+            const nextBtn = document.getElementById('next-btn');
+            nextBtn.innerText = state.step === 8 ? 'Confirmer le Paiement' : 'Suivant';
+            if (state.step === 8) nextBtn.classList.replace('bg-pink-500', 'bg-gray-900');
+            else nextBtn.classList.replace('bg-gray-900', 'bg-pink-500');
+
+            switch(state.step) {
+                case 1:
+                    container.innerHTML = `
+                        <h2 class="text-2xl font-serif text-gray-800 flex items-center gap-2 mb-6">
+                            <i data-lucide="layout" class="text-pink-500"></i> 1. Structure & Besoins
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                            ${CAKE_OPTIONS.shapes.map(item => `
+                                <button onclick="updateSelection('shape', CAKE_OPTIONS.shapes.find(x => x.id === '${item.id}'))"
+                                    class="p-6 border-2 rounded-3xl transition-all ${s.shape.id === item.id ? 'border-pink-500 bg-pink-50 ring-4 ring-pink-50' : 'border-gray-100 bg-white hover:border-pink-200'}">
+                                    <div class="text-4xl mb-3">${item.icon}</div>
+                                    <div class="font-bold text-sm text-gray-700">${item.label}</div>
+                                </button>
+                            `).join('')}
+                        </div>
+                        <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Régime Alimentaire</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            ${CAKE_OPTIONS.dietary.map(item => `
+                                <button onclick="updateSelection('diet', CAKE_OPTIONS.dietary.find(x => x.id === '${item.id}'))"
+                                    class="p-4 border-2 rounded-2xl text-[10px] font-bold transition-all ${s.diet.id === item.id ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-100 text-gray-500'}">
+                                    ${item.label} ${item.price > 0 ? `(+${item.price}€)` : ''}
+                                </button>
+                            `).join('')}
+                        </div>
+                    `;
+                    break;
+                case 2:
+                    container.innerHTML = `
+                        <h2 class="text-2xl font-serif text-gray-800 flex items-center gap-2 mb-6">
+                            <i data-lucide="cake" class="text-pink-500"></i> 2. Dimensions & Recette
+                        </h2>
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 block">Nombre d'étages & Parts</label>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                            ${CAKE_OPTIONS.tiers.map(item => `
+                                <button onclick="updateSelection('tier', CAKE_OPTIONS.tiers.find(x => x.id === '${item.id}'))"
+                                    class="p-4 border-2 rounded-2xl flex flex-col items-center gap-2 ${s.tier.id === item.id ? 'border-pink-500 bg-pink-50' : 'border-gray-100'}">
+                                    <span class="text-3xl">${item.icon}</span>
+                                    <span class="text-[10px] font-black uppercase text-center text-gray-800">${item.label}</span>
+                                    <span class="text-pink-600 font-bold">${item.price}€</span>
+                                </button>
+                            `).join('')}
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Moelleux du Biscuit</label>
+                                ${CAKE_OPTIONS.biscuits.map(item => `
+                                    <button onclick="updateSelection('biscuit', CAKE_OPTIONS.biscuits.find(x => x.id === '${item.id}'))"
+                                        class="w-full p-4 border-2 rounded-2xl flex justify-between items-center ${s.biscuit.id === item.id ? 'border-pink-500 bg-pink-50' : 'border-gray-100'}">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-4 h-4 rounded-full shadow-inner" style="background-color: ${item.color}"></div>
+                                            <span class="text-sm font-bold text-gray-700">${item.label}</span>
+                                        </div>
+                                        <span class="text-xs font-black text-gray-400">+${item.price}€</span>
+                                    </button>
+                                `).join('')}
+                            </div>
+                            <div class="space-y-4">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Fourrage & Crème</label>
+                                ${CAKE_OPTIONS.fillings.map(item => `
+                                    <button onclick="updateSelection('filling', CAKE_OPTIONS.fillings.find(x => x.id === '${item.id}'))"
+                                        class="w-full p-4 border-2 rounded-2xl flex justify-between items-center ${s.filling.id === item.id ? 'border-pink-500 bg-pink-50' : 'border-gray-100'}">
+                                        <span class="text-sm font-bold text-gray-700">${item.label}</span>
+                                        <span class="text-xs font-black text-gray-400">+${item.price}€</span>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 3:
+                    container.innerHTML = `
+                        <h2 class="text-2xl font-serif text-gray-800 flex items-center gap-2 mb-6">
+                            <i data-lucide="palette" class="text-pink-500"></i> 3. Ambiance & Thème
+                        </h2>
+                        <div class="space-y-6 mb-8">
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Palette de Couleurs</label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                ${CAKE_OPTIONS.palettes.map(p => `
+                                    <button onclick="updateSelection('palette', CAKE_OPTIONS.palettes.find(x => x.id === '${p.id}'))"
+                                        class="p-5 border-2 rounded-[2rem] flex items-center justify-between ${s.palette.id === p.id ? 'border-pink-500 bg-pink-50' : 'border-gray-100 bg-white'}">
+                                        <div class="text-left">
+                                            <div class="font-bold text-sm text-gray-800">${p.label}</div>
+                                            <div class="flex gap-1.5 mt-2">
+                                                ${p.colors.map(c => `<div class="w-5 h-5 rounded-full border border-gray-100 shadow-sm" style="background-color: ${c}"></div>`).join('')}
+                                            </div>
+                                        </div>
+                                        <span class="text-xs font-black text-pink-600">+${p.price}€</span>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Thème décoratif</label>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            ${CAKE_OPTIONS.themes.map(th => `
+                                <button onclick="updateSelection('theme', CAKE_OPTIONS.themes.find(x => x.id === '${th.id}'))"
+                                    class="p-5 border-2 rounded-3xl flex flex-col items-center gap-3 ${s.theme.id === th.id ? 'border-pink-500 bg-pink-50' : 'border-gray-100'}">
+                                    <i data-lucide="${th.icon}" class="text-pink-500 w-8 h-8"></i>
+                                    <div class="font-bold text-[10px] text-gray-700 uppercase tracking-tighter">${th.label}</div>
+                                    <div class="text-pink-600 font-bold text-xs">+${th.price}€</div>
+                                </button>
+                            `).join('')}
+                        </div>
+                    `;
+                    break;
+                case 4:
+                    container.innerHTML = `
+                        <h2 class="text-2xl font-serif text-gray-800 flex items-center gap-2 mb-6">
+                            <i data-lucide="star" class="text-pink-500"></i> 4. Décors & Message
+                        </h2>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+                            ${CAKE_OPTIONS.decorations.map(item => {
+                                const isSelected = s.decorations.find(x => x.id === item.id);
+                                return `
+                                    <button onclick="toggleArrayItem('decorations', CAKE_OPTIONS.decorations.find(x => x.id === '${item.id}'))"
+                                        class="p-5 border-2 rounded-3xl text-center transition-all ${isSelected ? 'border-pink-500 bg-pink-50' : 'border-gray-100'}">
+                                        <div class="flex justify-center mb-2"><i data-lucide="${item.icon}" class="w-6 h-6 text-pink-400"></i></div>
+                                        <div class="text-[10px] font-black uppercase text-gray-800 mb-1">${item.label}</div>
+                                        <div class="text-pink-600 font-bold text-xs">+${item.price}€</div>
+                                    </button>
+                                `;
+                            }).join('')}
+                        </div>
+                        <div class="bg-gray-50 p-6 rounded-[2rem] border border-gray-100">
+                            <label class="flex items-center gap-2 text-xs font-bold text-gray-600 mb-3">
+                                <i data-lucide="message-square" class="w-4 h-4"></i> Message écrit sur le gâteau
+                            </label>
+                            <textarea oninput="updateSelection('message', this.value)" 
+                                class="w-full p-4 rounded-2xl bg-white border-none focus:ring-4 focus:ring-pink-50 outline-none text-sm shadow-sm" 
+                                placeholder="Ex: Joyeux Anniversaire Alice !" rows="2">${s.message}</textarea>
+                        </div>
+                    `;
+                    break;
+                case 5:
+                    container.innerHTML = `
+                        <h2 class="text-2xl font-serif text-gray-800 flex items-center gap-2 mb-2">
+                            <i data-lucide="coffee" class="text-pink-500"></i> 5. Extras Gourmands
+                        </h2>
+                        <p class="text-gray-400 text-xs mb-8 italic">Accompagnez votre gâteau de douceurs assorties.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            ${CAKE_OPTIONS.addons.map(item => {
+                                const isSelected = s.addons.find(x => x.id === item.id);
+                                return `
+                                    <button onclick="toggleArrayItem('addons', CAKE_OPTIONS.addons.find(x => x.id === '${item.id}'))"
+                                        class="p-8 border-2 rounded-[2.5rem] text-center flex flex-col items-center gap-4 transition-all ${isSelected ? 'border-pink-500 bg-pink-50 ring-4 ring-pink-50' : 'border-gray-100 bg-white hover:border-pink-100'}">
+                                        <div class="text-5xl drop-shadow-md">${item.icon}</div>
+                                        <div class="font-black text-xs text-gray-800 uppercase tracking-tighter">${item.label}</div>
+                                        <div class="text-pink-600 font-black text-lg">+${item.price}€</div>
+                                    </button>
+                                `;
+                            }).join('')}
+                        </div>
+                        <div class="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 flex items-start gap-4">
+                            <i data-lucide="image" class="w-8 h-8 text-blue-500 shrink-0"></i>
+                            <div>
+                                <h4 class="font-bold text-blue-900 text-sm mb-1">Inspiration (Optionnel)</h4>
+                                <p class="text-[10px] text-blue-700 leading-relaxed font-medium">Vous avez une photo de référence ? Vous pourrez nous l'envoyer par e-mail après la validation.</p>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 6:
+                    container.innerHTML = `
+                        <h2 class="text-2xl font-serif text-gray-800 flex items-center gap-2 mb-8">
+                            <i data-lucide="truck" class="text-pink-500"></i> 6. Livraison & Timing
+                        </h2>
+                        <div class="flex p-1.5 bg-gray-100 rounded-[1.5rem] mb-8">
+                            <button onclick="updateSelection('deliveryMethod', 'pickup')" class="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm transition-all ${s.deliveryMethod === 'pickup' ? 'bg-white shadow-md text-pink-600' : 'text-gray-400'}">
+                                <i data-lucide="store" class="w-4 h-4"></i> Retrait
+                            </button>
+                            <button onclick="updateSelection('deliveryMethod', 'delivery')" class="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm transition-all ${s.deliveryMethod === 'delivery' ? 'bg-white shadow-md text-pink-600' : 'text-gray-400'}">
+                                <i data-lucide="truck" class="w-4 h-4"></i> Livraison (+15€)
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Jour de l'événement</label>
+                                <input type="date" value="${s.date}" onchange="updateSelection('date', this.value)" class="w-full p-4 border rounded-2xl focus:ring-4 focus:ring-pink-50 outline-none border-gray-100 text-sm">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Créneau souhaité</label>
+                                <input type="time" value="${s.time}" onchange="updateSelection('time', this.value)" class="w-full p-4 border rounded-2xl focus:ring-4 focus:ring-pink-50 outline-none border-gray-100 text-sm">
+                            </div>
+                            ${s.deliveryMethod === 'delivery' ? `
+                                <div class="md:col-span-2 space-y-2">
+                                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Adresse de Livraison</label>
+                                    <input type="text" placeholder="Rue, Étage, Digicode, Ville" value="${s.location}" oninput="updateSelection('location', this.value)" class="w-full p-4 border rounded-2xl focus:ring-4 focus:ring-pink-50 outline-none border-gray-100 text-sm">
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                    break;
+                case 7:
+                    container.innerHTML = `
+                        <h2 class="text-2xl font-serif text-gray-800 flex items-center gap-2 mb-8">
+                            <i data-lucide="user" class="text-pink-500"></i> 7. Vos Coordonnées
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Prénom</label>
+                                <input type="text" value="${s.customer.firstName}" oninput="updateCustomer('firstName', this.value)" class="w-full p-4 border rounded-2xl outline-none focus:ring-4 focus:ring-pink-50 border-gray-100 text-sm">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Nom</label>
+                                <input type="text" value="${s.customer.lastName}" oninput="updateCustomer('lastName', this.value)" class="w-full p-4 border rounded-2xl outline-none focus:ring-4 focus:ring-pink-50 border-gray-100 text-sm">
+                            </div>
+                            <div class="md:col-span-2 space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block">E-mail</label>
+                                <input type="email" value="${s.customer.email}" oninput="updateCustomer('email', this.value)" class="w-full p-4 border rounded-2xl outline-none focus:ring-4 focus:ring-pink-50 border-gray-100 text-sm">
+                            </div>
+                            <div class="md:col-span-2 space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Téléphone</label>
+                                <input type="tel" value="${s.customer.phone}" oninput="updateCustomer('phone', this.value)" class="w-full p-4 border rounded-2xl outline-none focus:ring-4 focus:ring-pink-50 border-gray-100 text-sm">
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 8:
+                    container.innerHTML = `
+                        <h2 class="text-2xl font-serif text-gray-800 flex items-center gap-2 mb-8">
+                            <i data-lucide="credit-card" class="text-pink-500"></i> 8. Règlement sécurisé
+                        </h2>
+                        <div class="space-y-4 mb-8">
+                            ${['card', 'paypal', 'apple'].map(m => `
+                                <button onclick="updateSelection('paymentMethod', '${m}')"
+                                    class="w-full p-6 border-2 rounded-2xl flex items-center justify-between transition-all ${s.paymentMethod === m ? 'border-pink-500 bg-pink-50 shadow-inner' : 'border-gray-100 bg-white hover:border-pink-100'}">
+                                    <span class="font-bold text-gray-800 capitalize">${m === 'card' ? 'Carte Bancaire' : m}</span>
+                                    ${s.paymentMethod === m ? `<i data-lucide="check-circle" class="text-pink-500"></i>` : ''}
+                                </button>
+                            `).join('')}
+                        </div>
+                        <div class="p-6 bg-emerald-50 rounded-[2rem] border border-emerald-100 flex items-center gap-4">
+                            <i data-lucide="shield-check" class="w-10 h-10 text-emerald-500 shrink-0"></i>
+                            <p class="text-[11px] text-emerald-700 font-medium leading-relaxed">Protection SSL 256-bits. Vous recevrez une facture détaillée immédiatement après la transaction.</p>
+                        </div>
+                    `;
+                    break;
+                case 9:
+                    const total = calculateTotal();
+                    container.innerHTML = `
+                        <div class="py-12 text-center animate-in zoom-in-95 duration-700">
+                            <div class="w-24 h-24 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-green-200">
+                                <i data-lucide="package-check" class="w-12 h-12"></i>
+                            </div>
+                            <h2 class="text-4xl font-serif font-black text-gray-900 leading-tight mb-2">Commande Confirmée !</h2>
+                            <p class="text-gray-400 mb-10 italic">Numéro de suivi : <span class="font-mono font-bold text-gray-800 tracking-tighter">#CAKE-${Math.floor(100000 + Math.random() * 900000)}</span></p>
+                            <div class="max-w-md mx-auto bg-white border-4 border-pink-50 rounded-[2.5rem] p-8 text-left space-y-4 shadow-xl shadow-pink-100/10">
+                                <div class="flex justify-between items-center pb-6 border-b border-pink-50">
+                                    <span class="font-serif text-2xl font-bold text-gray-800">Votre Chef-d'œuvre</span>
+                                    <span class="text-pink-600 font-black text-3xl">${total}€</span>
+                                </div>
+                                <div class="text-[13px] space-y-4 pt-4 text-gray-600">
+                                    <div class="flex justify-between"><strong>Destinataire</strong> <span>${s.customer.firstName} ${s.customer.lastName}</span></div>
+                                    <div class="flex justify-between"><strong>Événement</strong> <span>${s.date} à ${s.time}</span></div>
+                                    <div class="flex justify-between"><strong>Recette</strong> <span>${s.biscuit.label} & ${s.filling.label}</span></div>
+                                    <div class="flex justify-between"><strong>Mode</strong> <span>${s.deliveryMethod === 'pickup' ? 'Retrait en boutique' : 'Livraison à domicile'}</span></div>
+                                </div>
+                                <button onclick="window.location.reload()" class="w-full mt-8 py-5 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all shadow-lg">Commander un autre gâteau</button>
+                            </div>
+                        </div>
+                    `;
+                    break;
+            }
+            lucide.createIcons();
+        }
+
+        // Initialize App
+        window.onload = init;
+    </script>
+</body>
+</html>
